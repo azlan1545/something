@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hunaiza's Reply Countdown</title>
+
+  <!-- ✅ Tab icon (favicon) -->
+  <link rel="icon" type="image/jpeg" href="us.jpg">
+
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;1,300&family=Playfair+Display:ital,wght@0,500;1,500&display=swap" rel="stylesheet" />
+  <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --rose: #d63a5a; --bark: #7a4520; --bark2: #9a5830;
+  --text: #3a2020; --text-soft: #6a4040; --divider: rgba(180,100,100,0.25);
+}
+html, body { height: 100%; }
+body {
+  background: linear-gradient(160deg, #f8f0e6 0%, #f0e4d4 50%, #eadac8 100%);
+  font-family: 'Lato', sans-serif; color: var(--text);
+  min-height: 100vh; position: relative; overflow-x: hidden;
+}
+#bg-hearts { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.bg-heart  { position: absolute; opacity: 0; animation: bgFloat linear infinite; }
+@keyframes bgFloat {
+  0%   { transform: translateY(0) rotate(var(--r)) scale(var(--s)); opacity: 0; }
+  8%   { opacity: var(--o); }  88% { opacity: var(--o); }
+  100% { transform: translateY(-105vh) rotate(calc(var(--r) + 25deg)) scale(var(--s)); opacity: 0; }
+}
+.layout {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 45% 55%; min-height: 100vh;
+}
+.text-panel {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 4rem 2.5rem 5rem 4rem; gap: 1.6rem;
+}
+.title { font-weight: 400; font-size: clamp(1.25rem,2.6vw,1.7rem); line-height: 1.4; opacity: 0; transition: opacity 0.8s ease; min-height: 1.4em; }
+.title.visible { opacity: 1; }
+.message { font-weight: 300; font-size: clamp(1.1rem,2.2vw,1.45rem); line-height: 1.85; white-space: pre-wrap; min-height: 9em; }
+.message .cursor { display: inline-block; width: 2px; height: 1em; background: var(--rose); margin-left: 1px; vertical-align: text-bottom; animation: blink 0.65s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.signature { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(1.1rem,2vw,1.4rem); color: var(--text-soft); padding-left: 1.5rem; opacity: 0; transition: opacity 1s ease; }
+.signature.visible { opacity: 1; }
+.timer-block { border-top: 1px solid var(--divider); padding-top: 1.4rem; margin-top: 0.4rem; }
+.timer-label { font-size: 0.9rem; font-weight: 300; color: var(--text-soft); margin-bottom: 0.5rem; }
+.timer-value { font-size: clamp(1rem,2vw,1.2rem); font-weight: 300; line-height: 1.5; }
+.timer-value .num  { font-size: 1.9em; font-weight: 700; line-height: 1; margin-right: 0.1em; }
+.timer-value .unit { font-size: 1em; font-weight: 300; margin-right: 0.5em; }
+
+/* ✅ Rounded/Curved Header Picture (IMPLEMENTED) */
+.profile-img{
+  width: 580.35px;
+  height:313.95px;
+  object-fit:cover;
+  border-radius:18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* ── Scene ── */
+.scene {
+  position: relative; display: flex; align-items: flex-end; justify-content: center;
+  padding: 0; height: 540px; overflow: hidden;
+}
+.ground {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent 5%, rgba(122,69,32,0.3) 30%, rgba(122,69,32,0.3) 70%, transparent 95%);
+}
+
+/* Stage 1: Big heart */
+.heart-container {
+  position: absolute; top: 8%; left: 50%; transform: translateX(-50%) scale(0);
+  width: 130px; height: 130px; opacity: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+}
+.big-heart { width: 100%; height: 100%; filter: drop-shadow(0 6px 20px rgba(214,58,90,0.4)); }
+.big-heart path { fill: var(--rose); }
+@keyframes heartAppear {
+  0%  { transform: translateX(-50%) scale(0) rotate(-8deg); opacity: 0; }
+  55% { transform: translateX(-50%) scale(1.15) rotate(3deg); opacity: 1; }
+  75% { transform: translateX(-50%) scale(0.93) rotate(-1deg); }
+  100%{ transform: translateX(-50%) scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes heartPulse {
+  0%,100%{ transform: translateX(-50%) scale(1); }
+  50%    { transform: translateX(-50%) scale(1.07); }
+}
+.heart-container.appear { opacity: 1; animation: heartAppear 0.75s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.heart-container.pulse  { opacity: 1; animation: heartPulse 1.8s ease-in-out infinite; }
+
+/* Stage 2: Ball */
+.ball {
+  position: absolute; left: 50%; top: 18%; width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f9b0b8, var(--rose));
+  box-shadow: 0 3px 10px rgba(214,58,90,0.45);
+  transform: translateX(-50%); opacity: 0; z-index: 10; display: none;
+}
+@keyframes ballDrop {
+  0%  { top: 18%; opacity: 1; transform: translateX(-50%) scaleY(1) scaleX(1); }
+  68% { top: calc(100% - 15px); transform: translateX(-50%) scaleY(0.65) scaleX(1.3); }
+  78% { top: calc(100% - 24px); transform: translateX(-50%) scaleY(1.25) scaleX(0.82); }
+  88% { top: calc(100% - 16px); transform: translateX(-50%) scaleY(0.88) scaleX(1.08); }
+  100%{ top: calc(100% - 14px); opacity: 0; }
+}
+.ball.dropping { animation: ballDrop 1.15s cubic-bezier(0.6,0,0.9,0.5) forwards; }
+
+/* ── Tree SVG ── */
+.tree-svg {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 260px; height: 320px; overflow: visible; z-index: 2;
+}
+.tree-path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.trunk  { stroke: var(--bark);  stroke-width: 11; }
+.branch { stroke: var(--bark2); stroke-width: 5;  }
+
+/* ── Canopy ── */
+.canopy {
+  position: absolute;
+  bottom: 81px;
+  left: 50%; transform: translateX(-50%);
+  width: 243px; height: 217px;
+  pointer-events: none; z-index: 3;
+}
+.c-heart {
+  position: absolute; opacity: 0;
+  transform: scale(0) rotate(var(--r)); transform-origin: center;
+}
+@keyframes bloomHeart {
+  0%  { transform: scale(0)    rotate(var(--r)); opacity: 0; }
+  60% { transform: scale(1.28) rotate(var(--r)); opacity: 1; }
+  78% { transform: scale(0.88) rotate(var(--r)); opacity: 1; }
+  100%{ transform: scale(1)    rotate(var(--r)); opacity: 1; }
+}
+.c-heart.bloom { animation: bloomHeart 0.48s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+.restart-btn {
+  position: fixed; bottom: 1.4rem; right: 1.4rem; z-index: 200;
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 2px solid var(--rose); background: rgba(245,237,227,0.92);
+  color: var(--rose); font-size: 1.2rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 14px rgba(214,58,90,0.2); backdrop-filter: blur(6px);
+  transition: background 0.2s, transform 0.25s;
+}
+.restart-btn:hover { background: var(--rose); color: #fff; transform: rotate(-30deg) scale(1.1); }
+
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; }
+  .scene  { order: -1; height: 400px; }
+  .text-panel { padding: 2rem 1.5rem 5rem; }
+  .tree-svg { width: 200px; height: 246px; }
+  .canopy   { width: 184px; height: 163px; bottom: 64px; }
+  .heart-container { width: 100px; height: 100px; }
+}
+  </style>
+</head>
+<body>
+
+<div id="bg-hearts"></div>
+
+<main class="layout">
+  <section class="text-panel">
+
+    <!-- ✅ Header Picture (Rounded) -->
+    <img src="haha.jpg" alt="Header" class="profile-img" style="margin-bottom: 16px;">
+
+    <h1 class="title"    id="title"></h1>
+    <div class="message" id="message"></div>
+    <p class="signature" id="signature"></p>
+    <div class="timer-block">
+      <p class="timer-label" id="timer-label"></p>
+      <p class="timer-value" id="timer-value"></p>
+    </div>
+  </section>
+
+  <section class="scene" id="scene">
+    <div class="heart-container" id="heart-container">
+      <svg class="big-heart" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 85 C50 85 5 55 5 27 C5 12 17 2 30 2 C39 2 47 7 50 14 C53 7 61 2 70 2 C83 2 95 12 95 27 C95 55 50 85 50 85Z"/>
+      </svg>
+    </div>
+
+    <div class="ball" id="ball"></div>
+    <div class="ground"></div>
+
+    <svg class="tree-svg" id="tree-svg" viewBox="0 0 200 300"
+         xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
+
+      <path class="tree-path trunk"
+            d="M100 300 C100 285 100 265 100 248 C100 232 99 217 97 200"/>
+
+      <path class="tree-path branch"
+            d="M97 200 C82 178 56 163 32 148"/>
+
+      <path class="tree-path branch"
+            d="M97 200 C97 176 99 156 100 130"/>
+
+      <path class="tree-path branch"
+            d="M97 200 C114 177 146 163 168 148"/>
+
+      <path class="tree-path branch"
+            d="M32 148 C18 132 8 116 5 100"/>
+
+      <path class="tree-path branch"
+            d="M32 148 C33 128 37 108 40 90"/>
+
+      <path class="tree-path branch"
+            d="M100 130 C90 110 78 84 65 55"/>
+
+      <path class="tree-path branch"
+            d="M100 130 C110 108 122 84 135 55"/>
+
+      <path class="tree-path branch"
+            d="M168 148 C166 128 163 108 160 90"/>
+
+      <path class="tree-path branch"
+            d="M168 148 C180 132 192 116 195 100"/>
+    </svg>
+
+    <div class="canopy" id="canopy"></div>
+  </section>
+</main>
+
+<button class="restart-btn" id="restart-btn" title="Restart">↺</button>
+
+<script>
+/* ✅ CONFIG (English Only) */
+const LOVE_START     = "2026-01-11T02:41:00"; // 11 Jan 2026, 02:41 AM (local time)
+const TITLE_TEXT     = "For the one I care about most (Señorita):";
+const MESSAGE_LINES  = [
+  "My life was once a dark, endless night",
+  "until you rose like the MOON and brightened my world with your light. Among a thousand stars, you are the only MOON my eyes will ever search for :)"
+];
+const SIGNATURE_TEXT = "— Batman.";
+const TIMER_LABEL    = "Hunaizaaaa, it's been this long since you first replied to me:";
+const CANOPY_HEARTS  = 150;
+const TYPE_SPEED     = 38;
+const BLOOM_STAGGER  = 12;
+
+const HEART_COLORS = [
+  "#d63a5a","#e05070","#c02848","#f08898",
+  "#f4a0b0","#e87080","#b82040","#f0b8c8",
+  "#cc3858","#e8606c","#f09098","#d04060"
+];
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const qs    = id => document.getElementById(id);
+
+function heartSVG(size, color) {
+  return `<svg viewBox="0 0 100 90" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><path fill="${color}" d="M50 85 C50 85 5 55 5 27 C5 12 17 2 30 2 C39 2 47 7 50 14 C53 7 61 2 70 2 C83 2 95 12 95 27 C95 55 50 85 50 85Z"/></svg>`;
+}
+
+const heartContainer = qs('heart-container'), ball = qs('ball'), treeSvg = qs('tree-svg');
+const canopy = qs('canopy'), titleEl = qs('title'), messageEl = qs('message');
+const signatureEl = qs('signature'), timerLabelEl = qs('timer-label');
+const timerValueEl = qs('timer-value'), restartBtn = qs('restart-btn'), bgHeartsEl = qs('bg-hearts');
+
+function spawnBgHearts() {
+  bgHeartsEl.innerHTML = '';
+  for (let i = 0; i < 22; i++) {
+    const div = document.createElement('div');
+    div.className = 'bg-heart';
+    const col = HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)];
+    div.style.cssText =
+      `left:${Math.random()*100}%;bottom:-50px;` +
+      `--r:${((Math.random()-0.5)*50).toFixed(1)}deg;` +
+      `--s:${(0.5+Math.random()*0.8).toFixed(2)};` +
+      `--o:${(0.12+Math.random()*0.22).toFixed(2)};` +
+      `animation-duration:${(12+Math.random()*16).toFixed(1)}s;` +
+      `animation-delay:-${(Math.random()*22).toFixed(1)}s;`;
+    div.innerHTML = heartSVG(10 + Math.random() * 20, col);
+    bgHeartsEl.appendChild(div);
+  }
+}
+
+function showBigHeart() {
+  heartContainer.style.cssText = '';
+  heartContainer.style.display = 'flex';
+  heartContainer.classList.remove('appear','pulse');
+  void heartContainer.offsetWidth;
+  heartContainer.classList.add('appear');
+}
+
+function dropBall() {
+  ball.style.display = 'block'; ball.style.opacity = '1';
+  ball.classList.remove('dropping'); void ball.offsetWidth;
+  ball.classList.add('dropping');
+}
+
+function initTreePaths() {
+  treeSvg.querySelectorAll('.tree-path').forEach(p => {
+    const len = p.getTotalLength ? p.getTotalLength() : 300;
+    p.style.transition = 'none';
+    p.style.strokeDasharray = p.style.strokeDashoffset = len;
+  });
+}
+
+function growTree(ms) {
+  const all = [...treeSvg.querySelectorAll('.tree-path')];
+  const anim = (els, s, e) => els.forEach(p => {
+    p.style.transition =
+      `stroke-dashoffset ${(ms*(e-s)).toFixed(0)}ms cubic-bezier(0.4,0,0.2,1) ${(ms*s).toFixed(0)}ms`;
+    requestAnimationFrame(() => { p.style.strokeDashoffset = '0'; });
+  });
+  anim(all.filter(p => p.classList.contains('trunk')),   0,    0.28);
+  anim(all.filter(p => p.classList.contains('branch')), 0.18, 1.00);
+}
+
+/* ✅ Heart canopy */
+function createCanopyHearts(count) {
+  canopy.innerHTML = '';
+  const W = canopy.offsetWidth  || 243;
+  const H = canopy.offsetHeight || 217;
+
+  const ampX = W * 0.44;
+  const ampY = H * 0.44;
+
+  const cx = W * 0.50;
+  const cy = H * 0.47;
+
+  const hearts = [];
+  for (let i = 0; i < count; i++) {
+    const t = Math.random() * Math.PI * 2;
+
+    const bx = 16 * Math.pow(Math.sin(t), 3);
+    const by = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+
+    const r = Math.sqrt(Math.random());
+    const x = (bx / 18) * r;
+    const y = (by / 18) * r;
+
+    const px = cx + x * ampX;
+    const py = cy - y * ampY;
+
+    const size = 10 + Math.random() * 14;
+    const rot  = ((Math.random()-0.5)*40).toFixed(1) + 'deg';
+    const col  = HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)];
+
+    const el = document.createElement('div');
+    el.className = 'c-heart';
+    el.style.cssText =
+      `left:${(px-size/2).toFixed(1)}px;` +
+      `top:${(py-size/2).toFixed(1)}px;` +
+      `--r:${rot};`;
+    el.innerHTML = heartSVG(size, col);
+
+    canopy.appendChild(el);
+    hearts.push(el);
+  }
+  return hearts;
+}
+
+function bloomCanopy(hearts) {
+  [...hearts].sort(() => Math.random()-0.5)
+    .forEach((h,i) => setTimeout(() => h.classList.add('bloom'), i * BLOOM_STAGGER));
+}
+
+async function typewriter(lines, el, speed) {
+  el.innerHTML = '';
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  el.appendChild(cursor);
+
+  for (let l = 0; l < lines.length; l++) {
+    if (l > 0) el.insertBefore(document.createTextNode('\n'), cursor);
+    for (const ch of lines[l]) {
+      el.insertBefore(document.createTextNode(ch), cursor);
+      await sleep(speed);
+    }
+    if (l < lines.length - 1) await sleep(speed * 5);
+  }
+  await sleep(350);
+  cursor.remove();
+}
+
+/* ✅ English timer */
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function updateTimer() {
+  const start = new Date(LOVE_START).getTime();
+  let diffSec = Math.floor((Date.now() - start) / 1000);
+  if (diffSec < 0) diffSec = 0;
+
+  const days = Math.floor(diffSec / 86400);
+  const hrs  = Math.floor((diffSec % 86400) / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+
+  const f = (n, u) => `<span class="num">${n}</span><span class="unit">${u}</span>`;
+
+  timerValueEl.innerHTML =
+    f(days, ` day${days !== 1 ? 's' : ''} `) +
+    f(pad(hrs), ` hour${hrs !== 1 ? 's' : ''} `) +
+    f(pad(mins), ` minute${mins !== 1 ? 's' : ''} `) +
+    f(pad(secs), ` second${secs !== 1 ? 's' : ''} `);
+}
+
+let timerInt = null, animRunning = false;
+
+async function runTimeline() {
+  if (animRunning) return;
+  animRunning = true;
+
+  heartContainer.style.cssText = '';
+  heartContainer.style.display = 'none';
+  heartContainer.classList.remove('appear','pulse');
+
+  ball.style.display = 'none';
+  ball.classList.remove('dropping');
+
+  initTreePaths();
+  canopy.innerHTML = '';
+
+  titleEl.textContent = '';
+  titleEl.classList.remove('visible');
+
+  messageEl.innerHTML = '';
+
+  signatureEl.textContent = '';
+  signatureEl.classList.remove('visible');
+
+  await sleep(150);
+
+  timerLabelEl.textContent = TIMER_LABEL;
+  updateTimer();
+  clearInterval(timerInt);
+  timerInt = setInterval(updateTimer, 1000);
+
+  showBigHeart();
+  await sleep(750);
+
+  heartContainer.classList.remove('appear');
+  heartContainer.style.opacity = '1';
+  void heartContainer.offsetWidth;
+  heartContainer.classList.add('pulse');
+  await sleep(450);
+
+  dropBall();
+  await sleep(600);
+
+  heartContainer.style.transition = 'opacity 0.5s ease';
+  heartContainer.style.opacity = '0';
+  await sleep(650);
+
+  growTree(2400);
+  await sleep(2500);
+
+  const hearts = createCanopyHearts(CANOPY_HEARTS);
+  await sleep(60);
+  bloomCanopy(hearts);
+  await sleep(hearts.length * BLOOM_STAGGER + 500);
+
+  titleEl.classList.add('visible');
+  titleEl.textContent = TITLE_TEXT;
+  await sleep(500);
+
+  await typewriter(MESSAGE_LINES, messageEl, TYPE_SPEED);
+  await sleep(400);
+
+  signatureEl.textContent = SIGNATURE_TEXT;
+  signatureEl.classList.add('visible');
+
+  animRunning = false;
+}
+
+/* Start */
+spawnBgHearts();
+initTreePaths();
+timerLabelEl.textContent = TIMER_LABEL;
+runTimeline();
+
+restartBtn.addEventListener('click', () => {
+  animRunning = false;
+  runTimeline();
+});
+</script>
+</body>
+</html>
